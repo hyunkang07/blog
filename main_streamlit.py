@@ -21,6 +21,10 @@ import pyperclip
 import clipboard
 import platform
 import random
+from dotenv import load_dotenv
+
+# 환경변수 로드
+load_dotenv()
 
 # 제미나이 API 라이브러리 (호환성 문제가 있을 수 있음)
 try:
@@ -594,16 +598,27 @@ def main():
                     else:
                         st.error("❌ 로그인 페이지 테스트 실패!")
             
-            if st.button("🔐 로그인 테스트", use_container_width=True):
-                if st.session_state.account_data.empty:
-                    st.error("❌ 먼저 계정 데이터를 추가해주세요!")
-                else:
-                    with st.spinner("로그인 테스트 중..."):
-                        test_result = test_login_process()
-                        if test_result:
-                            st.success("✅ 로그인 테스트 성공!")
+            col_test1, col_test2 = st.columns(2)
+            
+            with col_test1:
+                if st.button("📋 클립보드 테스트", use_container_width=True):
+                    with st.spinner("클립보드 테스트 중..."):
+                        if test_clipboard():
+                            st.success("✅ 클립보드 정상 작동!")
                         else:
-                            st.error("❌ 로그인 테스트 실패!")
+                            st.error("❌ 클립보드 문제 발생!")
+            
+            with col_test2:
+                if st.button("🔐 로그인 테스트", use_container_width=True):
+                    if st.session_state.account_data.empty:
+                        st.error("❌ 먼저 계정 데이터를 추가해주세요!")
+                    else:
+                        with st.spinner("로그인 테스트 중..."):
+                            test_result = test_login_process()
+                            if test_result:
+                                st.success("✅ 로그인 테스트 성공!")
+                            else:
+                                st.error("❌ 로그인 테스트 실패!")
         
         with col_test2:
             if st.button("🔄 데이터 초기화", use_container_width=True):
@@ -689,14 +704,23 @@ def main():
                 - API 키가 노출되면 즉시 재발급하세요
                 """)
             
+            # 환경변수에서 API 키 읽기
+            env_api_key = os.getenv('GEMINI_API_KEY')
+            
+            # API 키 입력 (환경변수가 있으면 기본값으로 사용)
             api_key = st.text_input(
                 "제미나이 API KEY", 
-                value=st.session_state.api_key,
+                value=env_api_key if env_api_key else st.session_state.api_key,
                 type="password", 
-                help="Google AI Studio에서 발급받은 API 키를 입력하세요 (AIza... 형태)",
+                help="Google AI Studio에서 발급받은 API 키를 입력하세요 (AIza... 형태). 환경변수 GEMINI_API_KEY가 설정되어 있으면 자동으로 사용됩니다.",
                 key="api_key_input",
-                placeholder="AIza..."
+                placeholder="AIza..." if not env_api_key else "환경변수에서 로드됨"
             )
+            
+            # 환경변수 사용 안내
+            if env_api_key:
+                st.success("✅ 환경변수에서 API 키를 로드했습니다.")
+                st.info("💡 환경변수를 사용하지 않으려면 위 입력 필드에 다른 키를 입력하세요.")
             
             # 모델 선택
             st.markdown("**모델 선택**")
@@ -1006,6 +1030,8 @@ def login_naver_blog(driver, account_data):
         log_message("=== 네이버 로그인 시작 ===")
         log_message(f"드라이버 상태: {driver is not None}")
         log_message(f"계정 정보: {account_data}")
+        log_message(f"계정명: {account_data.get('계정명', 'N/A')}")
+        log_message(f"비밀번호: {'*' * len(account_data.get('비밀번호', '')) if account_data.get('비밀번호') else 'N/A'}")
         
         # 1단계: 네이버 로그인 페이지로 이동 (기존 login.enter_naver_login() 패턴)
         log_message("1단계: 네이버 로그인 페이지로 이동")
@@ -1031,31 +1057,77 @@ def login_naver_blog(driver, account_data):
         except:
             pass
         
-        # 3단계: 아이디/비밀번호 입력 (기존 login.input_id_pw() 패턴)
+        # 3단계: 아이디/비밀번호 입력 (기존 login.py와 정확히 동일)
         log_message("3단계: 아이디/비밀번호 입력")
         actions = ActionChains(driver)
         
         # 아이디 입력 (기존 코드와 정확히 동일)
+        log_message(f"아이디 입력 시도: {account_data['계정명']}")
         time.sleep(3)  # 기존 코드와 동일
-        clipboard.copy(account_data['계정명'])
-        id_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[1]/input")
-        id_input.click()
-        actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
-        log_message("아이디 입력 완료")
+        
+        try:
+            clipboard.copy(account_data['계정명'])
+            log_message(f"클립보드에 복사됨: {account_data['계정명']}")
+            
+            id_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[1]/input")
+            log_message("아이디 입력 필드 찾음")
+            
+            id_input.click()
+            log_message("아이디 입력 필드 클릭")
+            
+            actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
+            log_message("Ctrl+V 실행")
+            
+            # 입력 확인
+            time.sleep(1)
+            input_value = id_input.get_attribute('value')
+            log_message(f"아이디 입력 확인: '{input_value}'")
+            
+            log_message("아이디 입력 완료")
+        except Exception as e:
+            log_message(f"아이디 입력 오류: {str(e)}")
+            return False
         
         time.sleep(3)  # 기존 코드와 동일
         
         # 비밀번호 입력 (기존 코드와 정확히 동일)
-        clipboard.copy(account_data['비밀번호'])
-        pw_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[2]/input")
-        pw_input.click()
-        actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
-        log_message("비밀번호 입력 완료")
+        log_message(f"비밀번호 입력 시도: {'*' * len(account_data['비밀번호'])}")
+        
+        try:
+            clipboard.copy(account_data['비밀번호'])
+            log_message(f"클립보드에 복사됨: {'*' * len(account_data['비밀번호'])}")
+            
+            pw_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[2]/input")
+            log_message("비밀번호 입력 필드 찾음")
+            
+            pw_input.click()
+            log_message("비밀번호 입력 필드 클릭")
+            
+            actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
+            log_message("Ctrl+V 실행")
+            
+            # 입력 확인
+            time.sleep(1)
+            input_value = pw_input.get_attribute('value')
+            log_message(f"비밀번호 입력 확인: {'*' * len(input_value) if input_value else '입력되지 않음'}")
+            
+            log_message("비밀번호 입력 완료")
+        except Exception as e:
+            log_message(f"비밀번호 입력 오류: {str(e)}")
+            return False
         
         time.sleep(3)  # @sleep_after() 데코레이터와 동일
         
         # 4단계: 로그인 버튼 클릭 (기존 login.click_login_button() 패턴)
         log_message("4단계: 로그인 버튼 클릭")
+        
+        # 입력 후 스크린샷
+        try:
+            driver.save_screenshot("step3_input_completed.png")
+            log_message("입력 완료 스크린샷 저장: step3_input_completed.png")
+        except:
+            pass
+        
         driver.find_element(By.ID, "log.login").click()
         time.sleep(3)  # @sleep_after() 데코레이터와 동일
         
@@ -1684,10 +1756,34 @@ def test_login_page():
         log_message(f"상세 오류: {traceback.format_exc()}")
         return False
 
+def test_clipboard():
+    """클립보드 테스트"""
+    try:
+        test_text = "클립보드 테스트"
+        clipboard.copy(test_text)
+        copied_text = clipboard.paste()
+        
+        if copied_text == test_text:
+            log_message("✅ 클립보드 정상 작동")
+            return True
+        else:
+            log_message(f"❌ 클립보드 오류: 복사='{test_text}', 붙여넣기='{copied_text}'")
+            return False
+    except Exception as e:
+        log_message(f"❌ 클립보드 테스트 실패: {str(e)}")
+        return False
+
 def test_login_process():
     """실제 로그인 과정 테스트"""
     try:
         log_message("=== 로그인 과정 테스트 시작 ===")
+        
+        # 클립보드 테스트 먼저 실행
+        log_message("=== 클립보드 테스트 ===")
+        if not test_clipboard():
+            log_message("❌ 클립보드가 정상 작동하지 않습니다.")
+            return False
+        
         driver = setup_chrome_driver()
         
         if not driver:
@@ -1783,15 +1879,22 @@ def execute_task(platform, api_key, phone_number, content, min_wait, max_wait, u
         except Exception as e:
             log_message(f"드라이버 상태 확인 실패: {str(e)}")
         
-        # 네이버 메인 페이지로 이동 테스트
+        # 네이버 메인 페이지로 이동 테스트 (로그인 테스트와 동일한 방식)
         log_message("네이버 메인 페이지 이동 테스트")
         try:
             driver.get("https://www.naver.com")
             time.sleep(3)
             log_message(f"네이버 메인 페이지 이동 완료: {driver.current_url}")
             log_message(f"네이버 메인 페이지 제목: {driver.title}")
+            
+            # 로그인 테스트와 동일한 방식으로 로그인 페이지로 이동
+            log_message("로그인 페이지로 이동 (로그인 테스트와 동일한 방식)")
+            driver.get("https://nid.naver.com/nidlogin.login")
+            time.sleep(3)
+            log_message(f"로그인 페이지 이동 완료: {driver.current_url}")
+            log_message(f"로그인 페이지 제목: {driver.title}")
         except Exception as e:
-            log_message(f"네이버 메인 페이지 이동 실패: {str(e)}")
+            log_message(f"네이버 페이지 이동 실패: {str(e)}")
             return
         
         # AI 콘텐츠 생성
@@ -1817,8 +1920,26 @@ def execute_task(platform, api_key, phone_number, content, min_wait, max_wait, u
                 log_message(f"계정 {account['계정명']} 로그인 시도 시작")
                 log_message(f"현재 URL: {driver.current_url}")
                 
-                login_result = login_to_platform(driver, platform, account)
+                # 로그인 전 스크린샷
+                try:
+                    driver.save_screenshot(f"login_before_{account['계정명']}.png")
+                    log_message(f"로그인 전 스크린샷 저장: login_before_{account['계정명']}.png")
+                except:
+                    pass
+                
+                # 계정 데이터를 딕셔너리로 변환
+                account_dict = account.to_dict()
+                log_message(f"변환된 계정 데이터: {account_dict}")
+                
+                login_result = login_to_platform(driver, platform, account_dict)
                 log_message(f"로그인 결과: {login_result}")
+                
+                # 로그인 후 스크린샷
+                try:
+                    driver.save_screenshot(f"login_after_{account['계정명']}.png")
+                    log_message(f"로그인 후 스크린샷 저장: login_after_{account['계정명']}.png")
+                except:
+                    pass
                 
                 if login_result:
                     log_message(f"계정 {account['계정명']} 로그인 성공")
