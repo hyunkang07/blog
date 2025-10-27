@@ -1012,10 +1012,24 @@ def login_naver_blog(driver, account_data):
         driver.get("https://nid.naver.com/nidlogin.login")
         time.sleep(3)  # @sleep_after() 데코레이터와 동일
         
+        # 디버깅용 스크린샷
+        try:
+            driver.save_screenshot("step1_login_page.png")
+            log_message("1단계 스크린샷 저장: step1_login_page.png")
+        except:
+            pass
+        
         # 2단계: ID/전화번호 탭 클릭 (기존 login.click_ID_phone() 패턴)
         log_message("2단계: ID/전화번호 탭 클릭")
         driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/ul/li[1]/a").click()
         time.sleep(3)  # @sleep_after() 데코레이터와 동일
+        
+        # 디버깅용 스크린샷
+        try:
+            driver.save_screenshot("step2_id_tab_clicked.png")
+            log_message("2단계 스크린샷 저장: step2_id_tab_clicked.png")
+        except:
+            pass
         
         # 3단계: 아이디/비밀번호 입력 (기존 login.input_id_pw() 패턴)
         log_message("3단계: 아이디/비밀번호 입력")
@@ -1044,6 +1058,13 @@ def login_naver_blog(driver, account_data):
         log_message("4단계: 로그인 버튼 클릭")
         driver.find_element(By.ID, "log.login").click()
         time.sleep(3)  # @sleep_after() 데코레이터와 동일
+        
+        # 디버깅용 스크린샷
+        try:
+            driver.save_screenshot("step4_login_button_clicked.png")
+            log_message("4단계 스크린샷 저장: step4_login_button_clicked.png")
+        except:
+            pass
         
         # 5단계: 캡챠 확인 (기존 login.check_capcha_appear() 패턴)
         log_message("5단계: 캡챠 확인")
@@ -1085,6 +1106,20 @@ def login_naver_blog(driver, account_data):
         
         if login_success:
             log_message("네이버 로그인 성공")
+            # 7단계: 로그인 정보 저장하지 않기 (기존 login.click_login_not_save() 패턴)
+            log_message("7단계: 로그인 정보 저장하지 않기")
+            try:
+                driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/form/fieldset/span[2]/a").click()
+                log_message("로그인 정보 저장하지 않기 완료")
+            except:
+                log_message("로그인 정보 저장하지 않기 버튼을 찾을 수 없음 (정상일 수 있음)")
+            
+            # 최종 성공 스크린샷
+            try:
+                driver.save_screenshot("step7_login_success.png")
+                log_message("로그인 성공 스크린샷 저장: step7_login_success.png")
+            except:
+                pass
             return True
         else:
             # URL 기반 확인
@@ -1092,9 +1127,22 @@ def login_naver_blog(driver, account_data):
             log_message(f"로그인 후 URL: {current_url}")
             if "naver.com" in current_url and "nid.naver.com" not in current_url:
                 log_message("네이버 로그인 성공 (URL 확인)")
+                # 7단계: 로그인 정보 저장하지 않기
+                log_message("7단계: 로그인 정보 저장하지 않기")
+                try:
+                    driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/form/fieldset/span[2]/a").click()
+                    log_message("로그인 정보 저장하지 않기 완료")
+                except:
+                    log_message("로그인 정보 저장하지 않기 버튼을 찾을 수 없음 (정상일 수 있음)")
                 return True
             else:
                 log_message("네이버 로그인 실패")
+                # 실패 스크린샷
+                try:
+                    driver.save_screenshot("step7_login_failed.png")
+                    log_message("로그인 실패 스크린샷 저장: step7_login_failed.png")
+                except:
+                    pass
                 return False
             
     except Exception as e:
