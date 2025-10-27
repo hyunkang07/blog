@@ -1069,12 +1069,14 @@ def login_naver_blog(driver, account_data):
             clipboard.copy(account_data['계정명'])
             log_message(f"클립보드에 복사됨: {account_data['계정명']}")
             
+            # 기존 webdriver.py의 get_element_xpath 방식 사용
             id_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[1]/input")
             log_message("아이디 입력 필드 찾음")
             
             id_input.click()
             log_message("아이디 입력 필드 클릭")
             
+            # 기존 코드와 정확히 동일한 방식
             actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
             log_message("Ctrl+V 실행")
             
@@ -1082,6 +1084,31 @@ def login_naver_blog(driver, account_data):
             time.sleep(1)
             input_value = id_input.get_attribute('value')
             log_message(f"아이디 입력 확인: '{input_value}'")
+            
+            # 아이디 입력 후 스크린샷
+            try:
+                driver.save_screenshot("step3_id_input_after.png")
+                log_message("아이디 입력 후 스크린샷 저장: step3_id_input_after.png")
+            except:
+                pass
+            
+            if not input_value:
+                log_message("⚠️ 아이디 입력이 확인되지 않음 - 직접 입력 시도")
+                # 직접 입력 방식
+                id_input.clear()
+                for char in account_data['계정명']:
+                    id_input.send_keys(char)
+                    time.sleep(0.1)
+                time.sleep(1)
+                input_value = id_input.get_attribute('value')
+                log_message(f"직접 입력 결과: '{input_value}'")
+                
+                # 직접 입력 후 스크린샷
+                try:
+                    driver.save_screenshot("step3_id_direct_input.png")
+                    log_message("직접 입력 후 스크린샷 저장: step3_id_direct_input.png")
+                except:
+                    pass
             
             log_message("아이디 입력 완료")
         except Exception as e:
@@ -1097,12 +1124,14 @@ def login_naver_blog(driver, account_data):
             clipboard.copy(account_data['비밀번호'])
             log_message(f"클립보드에 복사됨: {'*' * len(account_data['비밀번호'])}")
             
+            # 기존 webdriver.py의 get_element_xpath 방식 사용
             pw_input = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/div/div[1]/form/ul/li/div/div[1]/div/div[2]/input")
             log_message("비밀번호 입력 필드 찾음")
             
             pw_input.click()
             log_message("비밀번호 입력 필드 클릭")
             
+            # 기존 코드와 정확히 동일한 방식
             actions.key_down(COMCON).send_keys('v').key_up(COMCON).perform()
             log_message("Ctrl+V 실행")
             
@@ -1110,6 +1139,31 @@ def login_naver_blog(driver, account_data):
             time.sleep(1)
             input_value = pw_input.get_attribute('value')
             log_message(f"비밀번호 입력 확인: {'*' * len(input_value) if input_value else '입력되지 않음'}")
+            
+            # 비밀번호 입력 후 스크린샷
+            try:
+                driver.save_screenshot("step3_pw_input_after.png")
+                log_message("비밀번호 입력 후 스크린샷 저장: step3_pw_input_after.png")
+            except:
+                pass
+            
+            if not input_value:
+                log_message("⚠️ 비밀번호 입력이 확인되지 않음 - 직접 입력 시도")
+                # 직접 입력 방식
+                pw_input.clear()
+                for char in account_data['비밀번호']:
+                    pw_input.send_keys(char)
+                    time.sleep(0.1)
+                time.sleep(1)
+                input_value = pw_input.get_attribute('value')
+                log_message(f"직접 입력 결과: {'*' * len(input_value) if input_value else '입력되지 않음'}")
+                
+                # 직접 입력 후 스크린샷
+                try:
+                    driver.save_screenshot("step3_pw_direct_input.png")
+                    log_message("직접 입력 후 스크린샷 저장: step3_pw_direct_input.png")
+                except:
+                    pass
             
             log_message("비밀번호 입력 완료")
         except Exception as e:
